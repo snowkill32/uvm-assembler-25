@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import re
+from bytes import encode_load
 
 
 CELL = r"mem\s*\[\s*([0-9]+)\s*\]"
@@ -51,7 +52,7 @@ def parse_program(source):
 
 
 def main():
-    """Разбирает исходную программу и выводит поля в тестовом режиме."""
+    """Собирает двоичный файл и выводит байты в тестовом режиме."""
     parser = argparse.ArgumentParser(description="Ассемблер УВМ, вариант 25")
     parser.add_argument("source", help="путь к тексту программы")
     parser.add_argument("output", help="путь к выходному двоичному файлу")
@@ -62,11 +63,19 @@ def main():
         instructions = parse_program(Path(args.source))
     except (OSError, ValueError) as error:
         parser.error(str(error))
+    encoded = []
+    for instruction in instructions:
+        encoded.append(encode_load(*instruction))
+    program_bytes = b"".join(encoded)
+    output_path = Path(args.output)
+    output_path.write_bytes(program_bytes)
 
+    print(f"Число команд: {len(instructions)}")
     if args.test:
-        for instruction in instructions:
-            fields = zip("ABCD", instruction)
-            print(", ".join(f"{name}={value}" for name, value in fields))
+        for instruction in encoded:
+            parts = instruction.hex(' ').split()
+            word = [f"0x{i.upper()}" for i in parts]
+            print(', '.join(word))
 
 
 if __name__ == "__main__":
